@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Navigation Bar -->
-    <nav class="w-full bg-gray-800 border-b border-gray-700 fixed top-0 z-50">
+    <nav class="w-full bg-gray-800 dark:bg-gray-900 border-b border-gray-700 fixed top-0 z-50">
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center h-16">
           <!-- Logo and Title -->
@@ -23,7 +23,7 @@
               :to="item.to"
               variant="solid"
               color="white"
-              class="bg-white text-gray-800 hover:bg-gray-200"
+              class="bg-white dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
             >
               {{ item.label }}
             </UButton>
@@ -42,7 +42,7 @@
         <!-- Mobile Menu -->
         <div
           v-show="isMobileMenuOpen"
-          class="md:hidden py-4 bg-gray-800"
+          class="md:hidden py-4 bg-gray-800 dark:bg-gray-900"
         >
           <UButton
             v-for="(item, index) in menuItems"
@@ -51,7 +51,7 @@
             variant="solid"
             color="white"
             block
-            class="mb-2 bg-white text-gray-800 hover:bg-gray-200"
+            class="mb-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             {{ item.label }}
           </UButton>
@@ -63,14 +63,14 @@
     <div class="h-16"></div>
 
     <!-- Hero Section -->
-    <section class="bg-blue-50">
+    <section class="bg-blue-50 dark:bg-gray-800">
       <div class="container mx-auto px-4 py-12">
         <div class="grid md:grid-cols-2 gap-8 items-center">
           <div>
-            <h2 class="text-3xl font-bold mb-4 text-blue-900">
+            <h2 class="text-3xl font-bold mb-4 text-blue-900 dark:text-blue-100">
               AI Assistant for MOST Services
             </h2>
-            <p class="text-lg text-gray-700 mb-6">
+            <p class="text-lg text-gray-700 dark:text-gray-300 mb-6">
               Get instant answers to your questions about Ministry services, grants, 
               and initiatives. Our AI assistant is here to help you 24/7.
             </p>
@@ -87,6 +87,7 @@
                 variant="outline"
                 size="lg"
                 to="/about"
+                class="dark:text-gray-300 dark:border-gray-300"
               >
                 Learn More
               </UButton>
@@ -106,7 +107,7 @@
     <!-- Floating Chat Button -->
     <button
       @click="isChatOpen = !isChatOpen"
-      class="fixed bottom-6 right-6 z-50 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-all duration-200"
+      class="fixed bottom-6 right-6 z-50 bg-blue-600 dark:bg-blue-500 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200"
     >
       <!-- Chat Icon when closed -->
       <UIcon
@@ -125,7 +126,7 @@
     <!-- Chat Interface Section -->
     <div
       v-show="isChatOpen"
-      class="fixed bottom-24 right-6 z-40 w-96 h-[600px] bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+      class="fixed bottom-24 right-6 z-40 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
       <div class="h-full">
         <ChatInterface />
