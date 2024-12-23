@@ -26,11 +26,17 @@ export default defineEventHandler(async (event) => {
     console.log('Raw Agent Response:', JSON.stringify(response, null, 2));
     let completion = "";
 
-    for await (const chunkEvent of response.completion) {
-      const chunk = chunkEvent.chunk;
-      console.log(chunk);
-      const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
-      completion += decodedResponse;
+    if (response.completion) {
+      for await (const chunkEvent of response.completion) {
+        if (chunkEvent.chunk) {
+          const chunk = chunkEvent.chunk;
+          console.log(chunk);
+          if (chunk.bytes) {
+            const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
+            completion += decodedResponse;
+          }
+        }
+      }
     }
     console.log(completion);
     // Extract response from the agent response
