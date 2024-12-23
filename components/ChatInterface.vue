@@ -69,16 +69,33 @@ watch(messages, (newMessages) => {
 
 const formatMessage = (content) => {
   try {
-    // If content is an object with messageStream, extract the actual message
-    if (typeof content === 'object' && content.options?.messageStream) {
-      // Extract text from the response chunks
-      const chunks = content.options.messageStream.options.decoder.messageBuffer || [];
-      return DOMPurify.sanitize(marked.parse(chunks.join(' ')));
+    // Log the incoming content for debugging
+    console.log('Formatting message content:', content);
+
+    // If content is a string, return it directly after sanitization
+    if (typeof content === 'string') {
+      return DOMPurify.sanitize(marked.parse(content));
     }
-    
-    // If it's a regular string, process it normally
-    const contentString = typeof content === 'object' ? JSON.stringify(content) : String(content);
-    return DOMPurify.sanitize(marked.parse(contentString));
+
+    // If content is an object, try to extract the message
+    if (typeof content === 'object') {
+      // Log the object structure
+      console.log('Message object structure:', JSON.stringify(content, null, 2));
+
+      // Try different possible response formats
+      const messageText = 
+        content.text || // Direct text
+        content.completion || // Completion response
+        content.message || // Message format
+        (content.chunks ? content.chunks.map(c => c.text).join('') : null) || // Chunked response
+        (content.messages ? content.messages[0]?.content : null) || // Messages array
+        JSON.stringify(content, null, 2); // Fallback to stringified object
+
+      return DOMPurify.sanitize(marked.parse(messageText));
+    }
+
+    // Fallback for other types
+    return DOMPurify.sanitize(marked.parse(String(content)));
   } catch (error) {
     console.error('Error formatting message:', error);
     return 'Error displaying message';
@@ -99,13 +116,15 @@ const sendMessage = async () => {
       body: { message: userMessage }
     })
 
-    // Format the response before adding it to messages
+    // Log the raw response
+    console.log('Raw API Response:', response);
+
+    // Extract the response content
     let formattedResponse = response.response;
-    if (typeof response.response === 'object') {
-      // Extract the actual message from the response structure
-      formattedResponse = response.response.completion || 
-                         response.response.message || 
-                         'No response content available';
+    
+    // If debug information is available, log it
+    if (response.debug) {
+      console.log('Debug Info:', response.debug);
     }
 
     messages.value.push({ 
@@ -116,7 +135,7 @@ const sendMessage = async () => {
     console.error('Error sending message:', error)
     messages.value.push({ 
       role: 'system', 
-      content: 'Sorry, there was an error processing your message.' 
+      content: `Error: ${error.message || 'Unknown error occurred'}`
     })
   } finally {
     isLoading.value = false
