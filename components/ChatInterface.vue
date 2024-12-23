@@ -82,9 +82,12 @@ const formatMessage = (content) => {
 
       // Try different possible response formats
       const messageText = 
+        (typeof content === 'string' ? content : null) || // Direct string
         content.text || // Direct text
         content.response || // Agent response
         content.message || // Message format
+        content.completion || // Completion response
+        (Array.isArray(content) ? content.join('') : null) || // Array of chunks
         (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
 
       return DOMPurify.sanitize(marked.parse(messageText));
