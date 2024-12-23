@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     }
-    console.log(completion);
+    console.log("Completion",completion);
     // Extract response from the agent response
     let agentResponse = '';
 
