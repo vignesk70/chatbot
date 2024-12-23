@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
     let completion = "";
 
     if (response.completion) {
+      console.log(typeof response.completion)
       for await (const chunkEvent of response.completion) {
         if (chunkEvent.chunk) {
           const chunk = chunkEvent.chunk;
