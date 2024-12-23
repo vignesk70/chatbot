@@ -8,7 +8,7 @@ module.exports = {
         script: './.output/server/index.mjs',
         env: {
           BEDROCK_AGENT_ID: "LP261QVRT1",
-          BEDROCK_AGENT_ALIAS_ID: process.env.BEDROCK_AGENT_ALIAS_ID
+          BEDROCK_AGENT_ALIAS_ID: "KCSYHP6YSJ"
         }
       }
     ]
