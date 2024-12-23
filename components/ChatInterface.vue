@@ -6,6 +6,25 @@
       divide: 'divide-gray-200 dark:divide-gray-800',
       ring: 'ring-1 ring-gray-200 dark:ring-gray-800'
     }" ref="messagesContainer">
+      <!-- Clear History Button Container -->
+      <div v-if="messages.length > 0" class="clear-history-container">
+        <UButton
+          size="sm"
+          color="gray"
+          variant="soft"
+          icon="i-heroicons-trash"
+          @click="confirmClearHistory"
+          :ui="{
+            base: 'transition-colors duration-200',
+            background: 'hover:bg-red-100 dark:hover:bg-red-900',
+            color: 'text-gray-700 dark:text-gray-300'
+          }"
+        >
+          Clear History
+        </UButton>
+      </div>
+
+      <!-- Messages -->
       <div v-for="(message, index) in messages" :key="index" class="message" :class="message.role">
         <UAvatar
           v-if="message.role === 'assistant'"
@@ -29,7 +48,7 @@
       </div>
     </UCard>
     
-    <div class="input-container dark:bg-gray-900 dark:border-gray-700">
+    <div class="input-container dark:bg-gray-800 dark:border-gray-700">
       <UTextarea
         v-model="userInput"
         :rows="2"
@@ -40,8 +59,7 @@
         class="message-input"
         :ui="{
           base: 'relative w-full',
-          form: 'block w-full rounded-md dark:bg-gray-800',
-          input: 'dark:text-white placeholder-gray-400 dark:placeholder-gray-500'
+          input: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
         }"
       />
       <UButton
@@ -56,6 +74,49 @@
       </UButton>
     </div>
   </div>
+
+  <!-- Confirmation Modal -->
+  <UModal v-model="showConfirmModal">
+    <UCard :ui="{
+      background: 'bg-white dark:bg-gray-900',
+      divide: 'divide-gray-200 dark:divide-gray-800',
+      ring: 'ring-1 ring-gray-200 dark:ring-gray-800'
+    }">
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-exclamation-triangle" class="text-yellow-500" />
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            Clear Chat History
+          </h3>
+        </div>
+      </template>
+
+      <p class="text-gray-700 dark:text-gray-300">
+        Are you sure you want to clear all chat messages? This action cannot be undone.
+      </p>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton
+            size="sm"
+            color="gray"
+            variant="soft"
+            @click="showConfirmModal = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            size="sm"
+            color="red"
+            variant="solid"
+            @click="clearHistory"
+          >
+            Clear History
+          </UButton>
+        </div>
+      </template>
+    </UCard>
+  </UModal>
 </template>
 
 <script setup>
@@ -67,6 +128,7 @@ const userInput = ref('')
 const messages = ref([])
 const isLoading = ref(false)
 const messagesContainer = ref(null)
+const showConfirmModal = ref(false)
 
 // Load messages from localStorage on component mount
 onMounted(() => {
@@ -83,6 +145,8 @@ watch(messages, (newMessages) => {
 
 const formatMessage = (content) => {
   try {
+    console.log('Formatting message content:', content);
+
     // If content is a string, return it directly after sanitization
     if (typeof content === 'string') {
       return DOMPurify.sanitize(marked.parse(content));
@@ -90,13 +154,13 @@ const formatMessage = (content) => {
 
     // If content is an object, try to extract the message
     if (typeof content === 'object') {
+      console.log('Message object structure:', JSON.stringify(content, null, 2));
+
+      // Try different possible response formats
       const messageText = 
-        (typeof content === 'string' ? content : null) || // Direct string
         content.text || // Direct text
         content.response || // Agent response
         content.message || // Message format
-        content.completion || // Completion response
-        (Array.isArray(content) ? content.join('') : null) || // Array of chunks
         (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
 
       return DOMPurify.sanitize(marked.parse(messageText));
@@ -123,9 +187,20 @@ const sendMessage = async () => {
       body: { message: userMessage }
     })
 
+    // Log the raw response
+    console.log('Raw API Response:', response);
+
+    // Extract the response content
+    let formattedResponse = response.response;
+    
+    // If debug information is available, log it
+    if (response.debug) {
+      console.log('Debug Info:', response.debug);
+    }
+
     messages.value.push({ 
       role: 'assistant', 
-      content: response.response
+      content: formattedResponse
     })
   } catch (error) {
     console.error('Error sending message:', error)
@@ -142,6 +217,18 @@ const sendMessage = async () => {
       })
     })
   }
+}
+
+// Function to show confirmation modal
+const confirmClearHistory = () => {
+  showConfirmModal.value = true
+}
+
+// Function to clear history
+const clearHistory = () => {
+  messages.value = []
+  localStorage.removeItem('chatMessages')
+  showConfirmModal.value = false
 }
 </script>
 
@@ -184,10 +271,8 @@ const sendMessage = async () => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  @apply dark:shadow-gray-900/50;
+  @apply bg-white dark:bg-gray-800 shadow-md dark:shadow-gray-900/50;
 }
 
 .message-input {
@@ -197,18 +282,18 @@ const sendMessage = async () => {
 /* Dark mode styles for markdown content */
 .message-content :deep(p) {
   margin: 0.5em 0;
-  @apply dark:text-gray-200;
+  @apply text-gray-900 dark:text-gray-100;
 }
 
 .message-content :deep(code) {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
   padding: 2px 4px;
   border-radius: 4px;
   font-family: monospace;
 }
 
 .message-content :deep(pre) {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
   padding: 1em;
   border-radius: 4px;
   overflow-x: auto;
@@ -218,6 +303,7 @@ const sendMessage = async () => {
 .message-content :deep(ol) {
   margin: 0.5em 0;
   padding-left: 2em;
+  @apply text-gray-900 dark:text-gray-100;
 }
 
 .message-content :deep(a) {
@@ -233,13 +319,29 @@ const sendMessage = async () => {
   @apply border-l-4 border-gray-300 dark:border-gray-600;
   margin: 0.5em 0;
   padding-left: 1em;
-  @apply text-gray-600 dark:text-gray-400;
+  @apply text-gray-700 dark:text-gray-300;
 }
 
-/* System message specific styles */
+.clear-history-container {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem;
+  @apply bg-gray-50/90 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-700 backdrop-blur-sm;
+}
+
+/* Message background colors */
+.message.assistant .message-content {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.message.user .message-content {
+  @apply bg-blue-50 dark:bg-blue-900;
+}
+
 .message.system .message-content {
-  @apply bg-red-50 dark:bg-red-950;
-  text-align: center;
-  width: 100%;
+  @apply bg-red-50 dark:bg-red-900 text-center w-full;
 }
 </style> 
