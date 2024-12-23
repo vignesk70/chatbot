@@ -69,7 +69,6 @@ watch(messages, (newMessages) => {
 
 const formatMessage = (content) => {
   try {
-    // Log the incoming content for debugging
     console.log('Formatting message content:', content);
 
     // If content is a string, return it directly after sanitization
@@ -79,13 +78,14 @@ const formatMessage = (content) => {
 
     // If content is an object, try to extract the message
     if (typeof content === 'object') {
-      // Log the object structure
       console.log('Message object structure:', JSON.stringify(content, null, 2));
 
       // Try different possible response formats
       const messageText = 
         content.text || // Direct text
-        content.completion || // Completion response
+        content.completion?.response || // Completion response
+        content.completion?.message || // Message format
+        (content.completion?.options?.messageStream?.options?.decoder?.messageBuffer || []).join(' ') || // Stream buffer
         content.message || // Message format
         (content.chunks ? content.chunks.map(c => c.text).join('') : null) || // Chunked response
         (content.messages ? content.messages[0]?.content : null) || // Messages array
