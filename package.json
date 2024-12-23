@@ -1,0 +1,23 @@
+{
+  "name": "nuxt-chatbot",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock": "^3.712.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.712.0",
+    "@nuxt/ui": "^2.20.0",
+    "dompurify": "^3.2.3",
+    "marked": "^15.0.4",
+    "nuxt": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
