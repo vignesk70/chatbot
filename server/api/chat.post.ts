@@ -24,8 +24,15 @@ export default defineEventHandler(async (event) => {
     // Send request to the agent
     const response = await bedrockAgentClient.send(command);
     console.log('Raw Agent Response:', JSON.stringify(response, null, 2));
-    
+    let completion = "";
 
+    for await (const chunkEvent of response.completion) {
+      const chunk = chunkEvent.chunk;
+      console.log(chunk);
+      const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
+      completion += decodedResponse;
+    }
+    console.log(completion);
     // Extract response from the agent response
     let agentResponse = '';
 
