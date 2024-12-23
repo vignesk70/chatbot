@@ -83,18 +83,13 @@ const formatMessage = (content) => {
       // Try different possible response formats
       const messageText = 
         content.text || // Direct text
-        content.completion?.response || // Completion response
-        content.completion?.message || // Message format
-        (content.completion?.options?.messageStream?.options?.decoder?.messageBuffer || []).join(' ') || // Stream buffer
+        content.response || // Agent response
         content.message || // Message format
-        (content.chunks ? content.chunks.map(c => c.text).join('') : null) || // Chunked response
-        (content.messages ? content.messages[0]?.content : null) || // Messages array
-        JSON.stringify(content, null, 2); // Fallback to stringified object
+        (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
 
       return DOMPurify.sanitize(marked.parse(messageText));
     }
 
-    // Fallback for other types
     return DOMPurify.sanitize(marked.parse(String(content)));
   } catch (error) {
     console.error('Error formatting message:', error);
