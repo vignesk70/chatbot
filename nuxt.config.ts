@@ -2,6 +2,17 @@
 export default defineNuxtConfig({
   modules: ['@nuxt/ui'],
 
+  colorMode: {
+    preference: 'system', // default value of $colorMode.preference
+    fallback: 'light', // fallback value if not system preference found
+    hid: 'nuxt-color-mode-script',
+    globalName: '__NUXT_COLOR_MODE__',
+    componentName: 'ColorScheme',
+    classPrefix: '',
+    classSuffix: '',
+    storageKey: 'nuxt-color-mode'
+  },
+
   runtimeConfig: {
     bedrockAgentId: process.env.BEDROCK_AGENT_ID,
     bedrockAgentAliasId: process.env.BEDROCK_AGENT_ALIAS_ID

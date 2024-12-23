@@ -1,6 +1,11 @@
 <template>
   <div class="chat-container">
-    <UCard class="messages-container" ref="messagesContainer">
+    <UCard class="messages-container" :ui="{ 
+      base: 'h-full overflow-auto',
+      background: 'bg-gray-50 dark:bg-gray-900',
+      divide: 'divide-gray-200 dark:divide-gray-800',
+      ring: 'ring-1 ring-gray-200 dark:ring-gray-800'
+    }" ref="messagesContainer">
       <div v-for="(message, index) in messages" :key="index" class="message" :class="message.role">
         <UAvatar
           v-if="message.role === 'assistant'"
@@ -14,13 +19,17 @@
           alt="User"
           size="sm"
         />
-        <div class="message-content">
+        <div class="message-content" :class="{
+          'bg-blue-50 dark:bg-blue-950': message.role === 'user',
+          'bg-gray-100 dark:bg-gray-800': message.role === 'assistant',
+          'bg-red-50 dark:bg-red-950': message.role === 'system'
+        }">
           <div v-html="formatMessage(message.content)"></div>
         </div>
       </div>
     </UCard>
     
-    <div class="input-container">
+    <div class="input-container dark:bg-gray-900 dark:border-gray-700">
       <UTextarea
         v-model="userInput"
         :rows="2"
@@ -29,6 +38,11 @@
         :disabled="isLoading"
         @keyup.enter.prevent="sendMessage"
         class="message-input"
+        :ui="{
+          base: 'relative w-full',
+          form: 'block w-full rounded-md dark:bg-gray-800',
+          input: 'dark:text-white placeholder-gray-400 dark:placeholder-gray-500'
+        }"
       />
       <UButton
         @click="sendMessage"
@@ -163,20 +177,7 @@ const sendMessage = async () => {
   max-width: 80%;
   padding: 0.75rem;
   border-radius: 0.5rem;
-}
-
-.message.assistant .message-content {
-  background-color: #f4f4f5;
-}
-
-.message.user .message-content {
-  background-color: #e0f2fe;
-}
-
-.message.system .message-content {
-  background-color: #fee2e2;
-  text-align: center;
-  width: 100%;
+  @apply text-gray-900 dark:text-gray-100;
 }
 
 .input-container {
@@ -186,25 +187,28 @@ const sendMessage = async () => {
   background-color: white;
   border-radius: 0.5rem;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  @apply dark:shadow-gray-900/50;
 }
 
 .message-input {
   flex-grow: 1;
 }
 
+/* Dark mode styles for markdown content */
 .message-content :deep(p) {
   margin: 0.5em 0;
+  @apply dark:text-gray-200;
 }
 
 .message-content :deep(code) {
-  background-color: #f0f0f0;
+  @apply bg-gray-100 dark:bg-gray-800;
   padding: 2px 4px;
   border-radius: 4px;
   font-family: monospace;
 }
 
 .message-content :deep(pre) {
-  background-color: #f8f8f8;
+  @apply bg-gray-100 dark:bg-gray-800;
   padding: 1em;
   border-radius: 4px;
   overflow-x: auto;
@@ -217,7 +221,7 @@ const sendMessage = async () => {
 }
 
 .message-content :deep(a) {
-  color: #2196f3;
+  @apply text-blue-600 dark:text-blue-400;
   text-decoration: none;
 }
 
@@ -226,9 +230,16 @@ const sendMessage = async () => {
 }
 
 .message-content :deep(blockquote) {
-  border-left: 4px solid #e0e0e0;
+  @apply border-l-4 border-gray-300 dark:border-gray-600;
   margin: 0.5em 0;
   padding-left: 1em;
-  color: #666;
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+/* System message specific styles */
+.message.system .message-content {
+  @apply bg-red-50 dark:bg-red-950;
+  text-align: center;
+  width: 100%;
 }
 </style> 
