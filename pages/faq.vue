@@ -1,3 +1,4 @@
 <template>
-    FAQ View
+    FAQ View - Added to EC2
+    
 </template>
