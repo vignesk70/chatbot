@@ -68,7 +68,9 @@ watch(messages, (newMessages) => {
 }, { deep: true })
 
 const formatMessage = (content) => {
-  const sanitizedContent = DOMPurify.sanitize(marked(content));
+  // Ensure content is a string before passing to marked
+  const contentString = typeof content === 'object' ? JSON.stringify(content) : String(content);
+  const sanitizedContent = DOMPurify.sanitize(marked.parse(contentString));
   return sanitizedContent;
 }
 
