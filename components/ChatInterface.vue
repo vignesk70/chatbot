@@ -68,10 +68,21 @@ watch(messages, (newMessages) => {
 }, { deep: true })
 
 const formatMessage = (content) => {
-  // Ensure content is a string before passing to marked
-  const contentString = typeof content === 'object' ? JSON.stringify(content) : String(content);
-  const sanitizedContent = DOMPurify.sanitize(marked.parse(contentString));
-  return sanitizedContent;
+  try {
+    // If content is an object with messageStream, extract the actual message
+    if (typeof content === 'object' && content.options?.messageStream) {
+      // Extract text from the response chunks
+      const chunks = content.options.messageStream.options.decoder.messageBuffer || [];
+      return DOMPurify.sanitize(marked.parse(chunks.join(' ')));
+    }
+    
+    // If it's a regular string, process it normally
+    const contentString = typeof content === 'object' ? JSON.stringify(content) : String(content);
+    return DOMPurify.sanitize(marked.parse(contentString));
+  } catch (error) {
+    console.error('Error formatting message:', error);
+    return 'Error displaying message';
+  }
 }
 
 const sendMessage = async () => {
@@ -88,7 +99,19 @@ const sendMessage = async () => {
       body: { message: userMessage }
     })
 
-    messages.value.push({ role: 'assistant', content: response.response })
+    // Format the response before adding it to messages
+    let formattedResponse = response.response;
+    if (typeof response.response === 'object') {
+      // Extract the actual message from the response structure
+      formattedResponse = response.response.completion || 
+                         response.response.message || 
+                         'No response content available';
+    }
+
+    messages.value.push({ 
+      role: 'assistant', 
+      content: formattedResponse
+    })
   } catch (error) {
     console.error('Error sending message:', error)
     messages.value.push({ 

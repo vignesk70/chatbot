@@ -20,10 +20,22 @@ export default defineEventHandler(async (event) => {
     });
 
     const response = await bedrockAgentClient.send(command);
-    const completion = response.completion;
+    
+    // Extract and format the response
+    let formattedResponse = '';
+    
+    if (response.completion) {
+      formattedResponse = response.completion;
+    } else if (response.messages && response.messages.length > 0) {
+      formattedResponse = response.messages[0].content;
+    } else if (typeof response === 'object') {
+      // If response is an object but doesn't have expected properties,
+      // convert it to a readable format
+      formattedResponse = JSON.stringify(response, null, 2);
+    }
 
     return {
-      response: completion
+      response: formattedResponse || 'No response content available'
     }
 
   } catch (error) {
