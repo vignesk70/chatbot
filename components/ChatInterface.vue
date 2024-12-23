@@ -69,8 +69,6 @@ watch(messages, (newMessages) => {
 
 const formatMessage = (content) => {
   try {
-    console.log('Formatting message content:', content);
-
     // If content is a string, return it directly after sanitization
     if (typeof content === 'string') {
       return DOMPurify.sanitize(marked.parse(content));
@@ -78,9 +76,6 @@ const formatMessage = (content) => {
 
     // If content is an object, try to extract the message
     if (typeof content === 'object') {
-      console.log('Message object structure:', JSON.stringify(content, null, 2));
-
-      // Try different possible response formats
       const messageText = 
         (typeof content === 'string' ? content : null) || // Direct string
         content.text || // Direct text
@@ -114,20 +109,9 @@ const sendMessage = async () => {
       body: { message: userMessage }
     })
 
-    // Log the raw response
-    console.log('Raw API Response:', response);
-
-    // Extract the response content
-    let formattedResponse = response.response;
-    
-    // If debug information is available, log it
-    if (response.debug) {
-      console.log('Debug Info:', response.debug);
-    }
-
     messages.value.push({ 
       role: 'assistant', 
-      content: formattedResponse
+      content: response.response
     })
   } catch (error) {
     console.error('Error sending message:', error)

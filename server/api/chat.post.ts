@@ -10,20 +10,16 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const { message } = body
 
-    console.log('Sending message to Bedrock Agent:', message);
-
     // Create the command for the agent
     const command = new InvokeAgentCommand({
       agentId: process.env.BEDROCK_AGENT_ID,
       agentAliasId: process.env.BEDROCK_AGENT_ALIAS_ID,
       sessionId: 'test-session',
-      inputText: message,
-      enableTrace: true
+      inputText: message
     });
 
     // Send request to the agent
     const response = await bedrockAgentClient.send(command);
-    console.log('Raw Agent Response:', JSON.stringify(response, null, 2));
 
     // Handle chunked response
     let agentResponse = '';
@@ -34,7 +30,6 @@ export default defineEventHandler(async (event) => {
         for await (const chunk of response.completion) {
           if (chunk.chunk?.bytes) {
             const decodedChunk = new TextDecoder().decode(chunk.chunk.bytes);
-            console.log('Decoded chunk:', decodedChunk);
             agentResponse += decodedChunk;
           }
         }
@@ -52,22 +47,15 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    console.log('Final Agent Response:', agentResponse);
-
     return {
-      response: agentResponse || 'No response from agent',
-      debug: {
-        metadata: response.$metadata,
-        finalResponse: agentResponse
-      }
+      response: agentResponse || 'No response from agent'
     }
 
   } catch (error) {
-    console.error('Error details:', error)
+    console.error('Error:', error)
     throw createError({
       statusCode: 500,
-      message: `Error processing agent request: ${error.message}`,
-      cause: error
+      message: `Error processing agent request: ${error.message}`
     })
   }
 }) 
