@@ -2,7 +2,7 @@ import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-b
 
 // Initialize Bedrock Agent Runtime client
 const bedrockAgentClient = new BedrockAgentRuntimeClient({
-  region: 'us-east-1'
+  region: process.env.AWS_REGION
 });
 
 export default defineEventHandler(async (event) => {
