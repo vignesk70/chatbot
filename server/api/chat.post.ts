@@ -9,14 +9,27 @@ export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
     const { message } = body
+    console.log('event', event)
 
+   
+    // Get session ID from cookie or generate a new one
+    let sessionId = getCookie(event, 'sessionId')
+    if (!sessionId) {
+      sessionId = crypto.randomUUID()
+      setCookie(event, 'sessionId', sessionId, {
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+        httpOnly: true
+      })
+    }
     // Create the command for the agent
     const command = new InvokeAgentCommand({
       agentId: process.env.BEDROCK_AGENT_ID,
       agentAliasId: process.env.BEDROCK_AGENT_ALIAS_ID,
-      sessionId: 'test-session',
+      sessionId: sessionId,
       inputText: message
     });
+    console.log('command', command)
 
     // Send request to the agent
     const response = await bedrockAgentClient.send(command);
