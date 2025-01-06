@@ -1,5 +1,26 @@
 import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 
+// Logger function to capture session data
+const logSessionData = async (sessionId: string, query: string, response: string) => {
+  try {
+    // Log the session data asynchronously to not block the main flow
+    setTimeout(async () => {
+      console.log({
+        timestamp: new Date().toISOString(),
+        sessionId,
+        query,
+        response,
+      });
+      // Here you can add your preferred logging mechanism
+      // For example: writing to a file, sending to a logging service,
+      // or storing in a database
+    }, 0);
+  } catch (error) {
+    // Silently handle logging errors to not affect main flow
+    console.error('Logging error:', error);
+  }
+};
+
 // Initialize Bedrock Agent Runtime client
 const bedrockAgentClient = new BedrockAgentRuntimeClient({
   region: process.env.AWS_REGION
@@ -9,7 +30,6 @@ export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
     const { message } = body
-    console.log('event', event)
 
    
     // Get session ID from cookie or generate a new one
@@ -29,7 +49,6 @@ export default defineEventHandler(async (event) => {
       sessionId: sessionId,
       inputText: message
     });
-    console.log('command', command)
 
     // Send request to the agent
     const response = await bedrockAgentClient.send(command);
@@ -63,6 +82,9 @@ export default defineEventHandler(async (event) => {
         agentResponse = response.responseMessage;
       }
     }
+
+    // Log the session data without blocking the response
+    await logSessionData(sessionId, message, agentResponse);
 
     return {
       response: agentResponse || 'No response from agent'
