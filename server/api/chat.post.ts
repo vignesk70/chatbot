@@ -1,4 +1,4 @@
-import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
+import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 
 // Initialize Bedrock Agent Runtime client
 const bedrockAgentClient = new BedrockAgentRuntimeClient({
@@ -34,7 +34,11 @@ export default defineEventHandler(async (event) => {
           }
         }
       } catch (error) {
-        console.error('Error processing chunks:', error);
+        console.error('Error processing request:', error);
+        if (error instanceof InternalServerException) {
+          console.error('Error message InternalServerException:', error.message);
+        }
+        agentResponse += 'Error processing request. Please try again later.';
       }
     }
 
