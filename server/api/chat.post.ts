@@ -21,7 +21,7 @@ const logSessionData = async (sessionId: string, query: string, response: string
   }
 };
 
-// Initialize Bedrock Agent Runtime client
+// Initialize Bedrock Agent Runtime client with just the region
 const bedrockAgentClient = new BedrockAgentRuntimeClient({
   region: process.env.AWS_REGION
 });
@@ -87,7 +87,8 @@ export default defineEventHandler(async (event) => {
     await logSessionData(sessionId, message, agentResponse);
 
     return {
-      response: agentResponse || 'No response from agent'
+      response: agentResponse || 'No response from agent',
+      sessionId: sessionId
     }
 
   } catch (error) {

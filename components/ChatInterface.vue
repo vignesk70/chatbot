@@ -44,6 +44,47 @@
           'bg-red-50 dark:bg-red-950': message.role === 'system'
         }">
           <div v-html="formatMessage(message.content)"></div>
+          
+          <!-- Feedback section for assistant messages -->
+          <div v-if="message.role === 'assistant'" class="feedback-section">
+            <div v-if="!message.feedbackGiven" class="flex items-center justify-end gap-2 mt-2">
+              <span class="text-sm text-gray-500 dark:text-gray-400">Was this helpful?</span>
+              <UButton
+                size="xs"
+                color="gray"
+                variant="ghost"
+                :ui="{
+                  base: 'transition-colors duration-200',
+                  color: 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400'
+                }"
+                @click="submitFeedback(index, true)"
+              >
+                <UIcon name="i-heroicons-hand-thumb-up" class="w-5 h-5" />
+              </UButton>
+              <UButton
+                size="xs"
+                color="gray"
+                variant="ghost"
+                :ui="{
+                  base: 'transition-colors duration-200',
+                  color: 'text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400'
+                }"
+                @click="submitFeedback(index, false)"
+              >
+                <UIcon name="i-heroicons-hand-thumb-down" class="w-5 h-5" />
+              </UButton>
+            </div>
+            <div v-else class="flex items-center justify-end gap-2 mt-2">
+              <span class="text-sm text-gray-500 dark:text-gray-400">
+                {{ message.isHelpful ? 'Marked as helpful' : 'Marked as not helpful' }}
+              </span>
+              <UIcon 
+                :name="message.isHelpful ? 'i-heroicons-hand-thumb-up' : 'i-heroicons-hand-thumb-down'"
+                class="w-5 h-5"
+                :class="message.isHelpful ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </UCard>
@@ -134,7 +175,17 @@ const showConfirmModal = ref(false)
 onMounted(() => {
   const savedMessages = localStorage.getItem('chatMessages')
   if (savedMessages) {
-    messages.value = JSON.parse(savedMessages)
+    try {
+      const parsed = JSON.parse(savedMessages)
+      messages.value = parsed.map(msg => ({
+        ...msg,
+        feedbackGiven: msg.feedbackGiven || false,
+        isHelpful: msg.isHelpful !== undefined ? msg.isHelpful : null
+      }))
+    } catch (error) {
+      console.error('Error loading saved messages:', error)
+      localStorage.removeItem('chatMessages') // Clear invalid data
+    }
   }
 })
 
@@ -187,21 +238,15 @@ const sendMessage = async () => {
       body: { message: userMessage }
     })
 
-    // Log the raw response
-    console.log('Raw API Response:', response);
-
-    // Extract the response content
-    let formattedResponse = response.response;
-    
-    // If debug information is available, log it
-    if (response.debug) {
-      console.log('Debug Info:', response.debug);
-    }
-
     messages.value.push({ 
       role: 'assistant', 
-      content: formattedResponse
+      content: response.response,
+      sessionId: response.sessionId,
+      feedbackGiven: false,
+      isHelpful: null
     })
+
+    localStorage.setItem('chatMessages', JSON.stringify(messages.value))
   } catch (error) {
     console.error('Error sending message:', error)
     messages.value.push({ 
@@ -229,6 +274,59 @@ const clearHistory = () => {
   messages.value = []
   localStorage.removeItem('chatMessages')
   showConfirmModal.value = false
+}
+
+// Update the submitFeedback function
+const submitFeedback = async (messageIndex, isHelpful) => {
+  try {
+    const message = messages.value[messageIndex]
+    const userMessage = messages.value[messageIndex - 1] // Get the user's query
+
+    // Log the current state for debugging
+    console.log('Before feedback:', {
+      messageIndex,
+      isHelpful,
+      currentMessage: message
+    })
+
+    const response = await $fetch('/api/feedback', {
+      method: 'POST',
+      body: {
+        sessionId: message.sessionId,
+        query: userMessage?.content || '',
+        response: message.content,
+        isHelpful: isHelpful // This will be true for thumbs up, false for thumbs down
+      }
+    })
+
+    if (response.status === 'success') {
+      // Create a new message object with updated properties
+      const updatedMessage = {
+        ...message,
+        feedbackGiven: true,
+        isHelpful: isHelpful // Explicitly set to boolean value
+      }
+
+      // Update the message in the messages array
+      messages.value[messageIndex] = updatedMessage
+
+      // Log the updated state for debugging
+      console.log('After feedback:', {
+        messageIndex,
+        updatedMessage,
+        allMessages: messages.value
+      })
+
+      // Force a save to localStorage
+      localStorage.setItem('chatMessages', JSON.stringify(messages.value))
+    }
+  } catch (error) {
+    console.error('Error submitting feedback:', error)
+    messages.value.push({ 
+      role: 'system', 
+      content: 'Failed to submit feedback. Please try again.'
+    })
+  }
 }
 </script>
 
@@ -343,5 +441,24 @@ const clearHistory = () => {
 
 .message.system .message-content {
   @apply bg-red-50 dark:bg-red-900 text-center w-full;
+}
+
+.feedback-section {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.feedback-section:hover {
+  opacity: 1;
+}
+
+/* Add animation for feedback buttons */
+.feedback-section button {
+  transform: scale(1);
+  transition: transform 0.2s;
+}
+
+.feedback-section button:hover {
+  transform: scale(1.1);
 }
 </style> 
