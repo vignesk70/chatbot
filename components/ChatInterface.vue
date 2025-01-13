@@ -249,7 +249,11 @@ const formatMessage = (content) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </a>
-                      ` : `<span>${citation.title}</span>`}
+                      ` : `
+                        <span class="text-gray-700 dark:text-gray-300">
+                          ${citation.title}
+                        </span>
+                      `}
                       ${citation.snippet ? `
                         <p class="text-gray-600 dark:text-gray-400 mt-1">
                           ${citation.snippet}
