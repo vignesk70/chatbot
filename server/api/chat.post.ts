@@ -1,4 +1,5 @@
 import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
+import { StringDecoder } from "string_decoder";
 
 // Logger function to capture session data
 const logSessionData = async (sessionId: string, query: string, response: string) => {
@@ -55,16 +56,43 @@ export default defineEventHandler(async (event) => {
 
     // Handle chunked response
     let agentResponse = '';
+    let citations = [];
 
     if (response.completion) {
       try {
         // Process the async iterator of chunks
         for await (const chunk of response.completion) {
+          // Handle text chunks
           if (chunk.chunk?.bytes) {
             const decodedChunk = new TextDecoder().decode(chunk.chunk.bytes);
             agentResponse += decodedChunk;
           }
+          
+          // Handle citations from retrievedReferences
+          if (chunk.chunk?.attribution?.citations) {
+            for (const citation of chunk.chunk.attribution.citations) {
+              if (citation.retrievedReferences && Array.isArray(citation.retrievedReferences)) {
+                const processedCitations = citation.retrievedReferences.map((ref, index) => ({
+                  title: `Source ${index + 1}`,
+                  url: ref.content?.url || null,
+                  snippet: ref.content?.text || ref.content?.snippet || null,
+                  location: ref.location || null
+                }));
+                citations = citations.concat(processedCitations);
+              }
+            }
+          }
         }
+
+        // Remove duplicate citations
+        citations = citations.filter((citation, index, self) =>
+          index === self.findIndex((c) => (
+            (c.url && c.url === citation.url) || 
+            (c.snippet && c.snippet === citation.snippet)
+          ))
+        );
+
+        console.log('Final processed citations:', citations); // Debug final output
       } catch (error) {
         console.error('Error processing request:', error);
         if (error instanceof InternalServerException) {
@@ -87,9 +115,9 @@ export default defineEventHandler(async (event) => {
     await logSessionData(sessionId, message, agentResponse);
 
     return {
-      response: agentResponse || 'No response from agent',
-      sessionId: sessionId
-    }
+      response: agentResponse,
+      citations: citations
+    };
 
   } catch (error) {
     console.error('Error:', error)
