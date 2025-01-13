@@ -202,47 +202,80 @@ const formatMessage = (content) => {
 
     // Handle content with citations
     if (typeof content === 'object') {
-      console.log('the content',content)
       let messageText = content.response || content.text || content;
       let citationsHtml = '';
 
-      // Format citations if they exist
+      // Add footnote references in the text if citations exist
       if (content.citations && content.citations.length > 0) {
+        // Add references at the end of each citation's relevant text
+        content.citations.forEach((citation, index) => {
+          const refNumber = index + 1;
+          if (citation.snippet) {
+            const escapedSnippet = citation.snippet
+              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+              .trim();
+            const snippetRegex = new RegExp(`(${escapedSnippet})(?![^<]*>)`, 'g');
+            messageText = messageText.replace(
+              snippetRegex,
+              `$1<sup class="text-blue-600 dark:text-blue-400 ml-1">[${refNumber}]</sup>`
+            );
+          }
+        });
+
+        // Add collapsible citations section
         citationsHtml = `
-          <div class="citations-section mt-4 border-t border-gray-200 dark:border-gray-700 pt-2">
-            <p class="text-sm font-semibold text-gray-600 dark:text-gray-400">Sources:</p>
-            <div class="mt-2 space-y-2">
-              ${content.citations.map((citation, index) => `
-                <a 
-                  href="${citation.url}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="block p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                >
-                  <div class="flex items-start">
-                    <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">[${index + 1}]</span>
+          <div class="citations-section mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <details class="citation-details">
+              <summary class="flex items-center cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <svg class="w-4 h-4 mr-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                References (${content.citations.length})
+              </summary>
+              <div class="pl-6 space-y-3 mt-2">
+                ${content.citations.map((citation, index) => `
+                  <div class="flex items-start gap-2 text-sm">
+                    <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
                     <div class="flex-1">
-                      <p class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                        ${citation.url || citation.title || `Source ${index + 1}`}
-                      </p>
+                      ${citation.url ? `
+                        <a 
+                          href="${citation.url}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                        >
+                          ${citation.title}
+                          <svg class="h-3 w-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      ` : `<span>${citation.title}</span>`}
                       ${citation.snippet ? `
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p class="text-gray-600 dark:text-gray-400 mt-1">
                           ${citation.snippet}
                         </p>
                       ` : ''}
                     </div>
-                    <svg class="h-5 w-5 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
                   </div>
-                </a>
-              `).join('')}
-            </div>
+                `).join('')}
+              </div>
+            </details>
           </div>
         `;
       }
 
-      return DOMPurify.sanitize(marked.parse(messageText) + citationsHtml);
+      // First parse the message text with marked, then add citations
+      const parsedMessage = marked.parse(messageText);
+      return DOMPurify.sanitize(parsedMessage + citationsHtml) + `
+        <style>
+          .citation-details > summary::-webkit-details-marker {
+            display: none;
+          }
+          .citation-details[open] > summary svg {
+            transform: rotate(90deg);
+          }
+        </style>
+      `;
     }
 
     return DOMPurify.sanitize(marked.parse(String(content)));

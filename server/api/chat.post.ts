@@ -1,4 +1,4 @@
-import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
+import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand, ValidationException } from "@aws-sdk/client-bedrock-agent-runtime";
 import { StringDecoder } from "string_decoder";
 
 // Logger function to capture session data
@@ -98,7 +98,12 @@ export default defineEventHandler(async (event) => {
         if (error instanceof InternalServerException) {
           console.error('Error message InternalServerException:', error.message);
         }
-        agentResponse += 'Error processing request. Please try again later.';
+        else if (error instanceof ValidationException){
+          console.error('Error message ValidationException:', error.message);
+          agentResponse += "Were setting things up behind the scenes. Please try again later."
+        }
+        else 
+          agentResponse += 'Error processing request. Please try again later.';
       }
     }
 
