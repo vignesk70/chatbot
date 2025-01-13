@@ -195,25 +195,54 @@ watch(messages, (newMessages) => {
 
 const formatMessage = (content) => {
   try {
-    console.log('Formatting message content:', content);
-
     // If content is a string, return it directly after sanitization
     if (typeof content === 'string') {
       return DOMPurify.sanitize(marked.parse(content));
     }
 
-    // If content is an object, try to extract the message
+    // Handle content with citations
     if (typeof content === 'object') {
-      console.log('Message object structure:', JSON.stringify(content, null, 2));
+      console.log('the content',content)
+      let messageText = content.response || content.text || content;
+      let citationsHtml = '';
 
-      // Try different possible response formats
-      const messageText = 
-        content.text || // Direct text
-        content.response || // Agent response
-        content.message || // Message format
-        (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
+      // Format citations if they exist
+      if (content.citations && content.citations.length > 0) {
+        citationsHtml = `
+          <div class="citations-section mt-4 border-t border-gray-200 dark:border-gray-700 pt-2">
+            <p class="text-sm font-semibold text-gray-600 dark:text-gray-400">Sources:</p>
+            <div class="mt-2 space-y-2">
+              ${content.citations.map((citation, index) => `
+                <a 
+                  href="${citation.url}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="block p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <div class="flex items-start">
+                    <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">[${index + 1}]</span>
+                    <div class="flex-1">
+                      <p class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                        ${citation.url || citation.title || `Source ${index + 1}`}
+                      </p>
+                      ${citation.snippet ? `
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          ${citation.snippet}
+                        </p>
+                      ` : ''}
+                    </div>
+                    <svg class="h-5 w-5 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
 
-      return DOMPurify.sanitize(marked.parse(messageText));
+      return DOMPurify.sanitize(marked.parse(messageText) + citationsHtml);
     }
 
     return DOMPurify.sanitize(marked.parse(String(content)));
@@ -239,7 +268,10 @@ const sendMessage = async () => {
 
     messages.value.push({ 
       role: 'assistant', 
-      content: response.response,
+      content: {
+        response: response.response,
+        citations: response.citations
+      },
       sessionId: response.sessionId,
       feedbackGiven: false,
       isHelpful: null
