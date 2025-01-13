@@ -7,8 +7,8 @@ module.exports = {
         instances: 'max',
         script: './.output/server/index.mjs',
         env: {
-          BEDROCK_AGENT_ID: "LP261QVRT1",
-          BEDROCK_AGENT_ALIAS_ID: "KCSYHP6YSJ"
+          BEDROCK_AGENT_ID: "F5YWKHZCSF",
+          BEDROCK_AGENT_ALIAS_ID: "NVULQ0KMOL"
         }
       }
     ]

@@ -176,15 +176,14 @@ onMounted(() => {
   const savedMessages = localStorage.getItem('chatMessages')
   if (savedMessages) {
     try {
-      const parsed = JSON.parse(savedMessages)
-      messages.value = parsed.map(msg => ({
+      messages.value = JSON.parse(savedMessages).map(msg => ({
         ...msg,
         feedbackGiven: msg.feedbackGiven || false,
-        isHelpful: msg.isHelpful !== undefined ? msg.isHelpful : null
+        isHelpful: msg.hasOwnProperty('isHelpful') ? msg.isHelpful : null
       }))
     } catch (error) {
       console.error('Error loading saved messages:', error)
-      localStorage.removeItem('chatMessages') // Clear invalid data
+      localStorage.removeItem('chatMessages')
     }
   }
 })
@@ -280,46 +279,32 @@ const clearHistory = () => {
 const submitFeedback = async (messageIndex, isHelpful) => {
   try {
     const message = messages.value[messageIndex]
-    const userMessage = messages.value[messageIndex - 1] // Get the user's query
+    const userMessage = messages.value[messageIndex - 1]
 
-    // Log the current state for debugging
-    console.log('Before feedback:', {
-      messageIndex,
-      isHelpful,
-      currentMessage: message
-    })
+    // Create updated message with feedback
+    const updatedMessage = {
+      ...message,
+      feedbackGiven: true,
+      isHelpful: isHelpful // This will be true for thumbs up, false for thumbs down
+    }
 
-    const response = await $fetch('/api/feedback', {
+    // Update the message in the array
+    messages.value[messageIndex] = updatedMessage
+
+    // Save to localStorage immediately after updating
+    localStorage.setItem('chatMessages', JSON.stringify(messages.value))
+
+    // Send feedback to server
+    await $fetch('/api/feedback', {
       method: 'POST',
       body: {
         sessionId: message.sessionId,
         query: userMessage?.content || '',
         response: message.content,
-        isHelpful: isHelpful // This will be true for thumbs up, false for thumbs down
+        isHelpful: isHelpful
       }
     })
 
-    if (response.status === 'success') {
-      // Create a new message object with updated properties
-      const updatedMessage = {
-        ...message,
-        feedbackGiven: true,
-        isHelpful: isHelpful // Explicitly set to boolean value
-      }
-
-      // Update the message in the messages array
-      messages.value[messageIndex] = updatedMessage
-
-      // Log the updated state for debugging
-      console.log('After feedback:', {
-        messageIndex,
-        updatedMessage,
-        allMessages: messages.value
-      })
-
-      // Force a save to localStorage
-      localStorage.setItem('chatMessages', JSON.stringify(messages.value))
-    }
   } catch (error) {
     console.error('Error submitting feedback:', error)
     messages.value.push({ 
