@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
           if (chunk.chunk?.attribution?.citations) {
             for (const citation of chunk.chunk.attribution.citations) {
               if (citation.retrievedReferences && Array.isArray(citation.retrievedReferences)) {
-                console.log('Citation:', citation.retrievedReferences.metadata)
+                // console.log('Citation:', citation.retrievedReferences.metadata)
                 const processedCitations = citation.retrievedReferences.map((ref, index) => ({
                   title: `Source ${index + 1}`,
                   url: ref.metadata?.web_source_url || null,
