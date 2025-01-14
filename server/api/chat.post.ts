@@ -27,6 +27,21 @@ const bedrockAgentClient = new BedrockAgentRuntimeClient({
   region: process.env.AWS_REGION
 });
 
+interface Citation {
+  title: string;
+  snippet?: string;
+  retrievedReference?: {
+    metadata?: {
+      web_source_url?: string;
+      web_site_map?: string;
+    };
+  };
+  location?: {
+    start?: number;
+    end?: number;
+  };
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -72,10 +87,11 @@ export default defineEventHandler(async (event) => {
           if (chunk.chunk?.attribution?.citations) {
             for (const citation of chunk.chunk.attribution.citations) {
               if (citation.retrievedReferences && Array.isArray(citation.retrievedReferences)) {
+                console.log('Citation:', citation.retrievedReferences.metadata)
                 const processedCitations = citation.retrievedReferences.map((ref, index) => ({
                   title: `Source ${index + 1}`,
-                  url: ref.content?.url || null,
-                  snippet: ref.content?.text || ref.content?.snippet || null,
+                  url: ref.metadata?.web_source_url || null,
+                  snippet: ref.metadata?.web_site_map || ref.content?.snippet || null,
                   location: ref.location || null
                 }));
                 citations = citations.concat(processedCitations);
