@@ -160,13 +160,45 @@
   </UModal>
 </template>
 
-<script setup>
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import { watch, onMounted } from 'vue';
+<script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
+
+interface Citation {
+  title: string;
+  snippet?: string;
+  retrievedReferences?: Array<{
+    content?: {
+      url?: string;
+      text?: string;
+      snippet?: string;
+    };
+    metadata?: {
+      web_source_url?: string;
+      web_site_map?: string;
+    };
+    location?: {
+      start?: number;
+      end?: number;
+    };
+  }>;
+}
+
+interface Message {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string | {
+    response: string;
+    citations?: Citation[];
+  };
+  sessionId?: string;
+  feedbackGiven?: boolean;
+  isHelpful?: boolean | null;
+}
 
 const userInput = ref('')
-const messages = ref([])
+const messages = ref<Message[]>([])
 const isLoading = ref(false)
 const messagesContainer = ref(null)
 const showConfirmModal = ref(false)
@@ -193,36 +225,36 @@ watch(messages, (newMessages) => {
   localStorage.setItem('chatMessages', JSON.stringify(newMessages))
 }, { deep: true })
 
-const formatMessage = (content) => {
+const formatMessage = (content: string | { response: string; citations?: Citation[] }) => {
   try {
-    // If content is a string, return it directly after sanitization
     if (typeof content === 'string') {
-      return DOMPurify.sanitize(marked.parse(content));
+      return DOMPurify.sanitize(marked.parse(content))
     }
 
-    // Handle content with citations
     if (typeof content === 'object') {
-      let messageText = content.response || content.text || content;
-      let citationsHtml = '';
+      let messageText = content.response
+      const citations = content.citations || []
 
-      // Add footnote references in the text if citations exist
-      if (content.citations && content.citations.length > 0) {
-        // Add references at the end of each citation's relevant text
-        content.citations.forEach((citation, index) => {
-          const refNumber = index + 1;
-          if (citation.snippet) {
-            const escapedSnippet = citation.snippet
-              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-              .trim();
-            const snippetRegex = new RegExp(`(${escapedSnippet})(?![^<]*>)`, 'g');
-            messageText = messageText.replace(
-              snippetRegex,
-              `$1<sup class="text-blue-600 dark:text-blue-400 ml-1">[${refNumber}]</sup>`
-            );
-          }
-        });
+      // Debug log
+      console.log('Citations:', citations)
 
-        // Add collapsible citations section
+      // Add references at the end of each citation's relevant text
+      citations.forEach((citation, index) => {
+        const refNumber = index + 1
+        if (citation.snippet) {
+          const escapedSnippet = citation.snippet
+            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            .trim()
+          const snippetRegex = new RegExp(`(${escapedSnippet})(?![^<]*>)`, 'g')
+          messageText = messageText.replace(
+            snippetRegex,
+            `$1<sup class="text-blue-600 dark:text-blue-400 ml-1">[${refNumber}]</sup>`
+          )
+        }
+      })
+
+      let citationsHtml = ''
+      if (citations.length > 0) {
         citationsHtml = `
           <div class="citations-section mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <details class="citation-details">
@@ -230,62 +262,65 @@ const formatMessage = (content) => {
                 <svg class="w-4 h-4 mr-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                References (${content.citations.length})
+                References (${citations.length})
               </summary>
               <div class="pl-6 space-y-3 mt-2">
-                ${content.citations.map((citation, index) => `
-                  <div class="flex items-start gap-2 text-sm">
-                    <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
-                    <div class="flex-1">
-                      ${citation.url ? `
-                        <a 
-                          href="${citation.url}"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                        >
-                          ${citation.title}
-                          <svg class="h-3 w-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      ` : `
-                        <span class="text-gray-700 dark:text-gray-300">
-                          ${citation.title}
-                        </span>
-                      `}
-                      ${citation.snippet ? `
-                        <p class="text-gray-600 dark:text-gray-400 mt-1">
-                          ${citation.snippet}
-                        </p>
-                      ` : ''}
+                ${citations.map((citation, index) => {
+                  // Get the first retrievedReference if it exists
+                  const ref = citation;
+                  const sourceUrl = ref?.url || ref?.content?.url;
+                  const siteMap = ref?.snippet;
+                  
+                  console.log('Citation ref:', ref);
+                  console.log('Source URL:', sourceUrl);
+                  console.log('Site Map:', siteMap);
+
+                  return `
+                    <div class="flex items-start gap-2 text-sm">
+                      <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
+                      <div class="flex-1">
+                        ${sourceUrl ? `
+                          <a 
+                            href="${sourceUrl}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 group"
+                          >
+                            Source
+                            <svg class="h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        ` : `
+                          <span class="text-gray-700 dark:text-gray-300">
+                            ${citation.title}
+                          </span>
+                        `}
+                        ${siteMap ? `
+                          <div class="text-gray-600 dark:text-gray-400 mt-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                            <div class="font-medium mb-1">Site Map:</div>
+                            ${siteMap.split('\n').map(line => 
+                              `<div class="ml-2">${line}</div>`
+                            ).join('')}
+                          </div>
+                        ` : ''}
+                      </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </details>
           </div>
-        `;
+        `
       }
 
-      // First parse the message text with marked, then add citations
-      const parsedMessage = marked.parse(messageText);
-      return DOMPurify.sanitize(parsedMessage + citationsHtml) + `
-        <style>
-          .citation-details > summary::-webkit-details-marker {
-            display: none;
-          }
-          .citation-details[open] > summary svg {
-            transform: rotate(90deg);
-          }
-        </style>
-      `;
+      return DOMPurify.sanitize(marked.parse(messageText) + citationsHtml)
     }
 
-    return DOMPurify.sanitize(marked.parse(String(content)));
+    return DOMPurify.sanitize(marked.parse(String(content)))
   } catch (error) {
-    console.error('Error formatting message:', error);
-    return 'Error displaying message';
+    console.error('Error formatting message:', error)
+    return 'Error displaying message'
   }
 }
 
