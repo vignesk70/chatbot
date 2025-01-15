@@ -235,29 +235,11 @@ const formatMessage = (content: string | { response: string; citations?: Citatio
       let messageText = content.response
       const citations = content.citations || []
 
-      // Debug log
-      console.log('Citations:', citations)
-
-      // Add references at the end of each citation's relevant text
-      citations.forEach((citation, index) => {
-        const refNumber = index + 1
-        if (citation.snippet) {
-          const escapedSnippet = citation.snippet
-            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            .trim()
-          const snippetRegex = new RegExp(`(${escapedSnippet})(?![^<]*>)`, 'g')
-          messageText = messageText.replace(
-            snippetRegex,
-            `$1<sup class="text-blue-600 dark:text-blue-400 ml-1">[${refNumber}]</sup>`
-          )
-        }
-      })
-
       let citationsHtml = ''
       if (citations.length > 0) {
         citationsHtml = `
           <div class="citations-section mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <details class="citation-details">
+            <details open class="citation-details">
               <summary class="flex items-center cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 <svg class="w-4 h-4 mr-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -265,23 +247,14 @@ const formatMessage = (content: string | { response: string; citations?: Citatio
                 References (${citations.length})
               </summary>
               <div class="pl-6 space-y-3 mt-2">
-                ${citations.map((citation, index) => {
-                  // Get the first retrievedReference if it exists
-                  const ref = citation;
-                  const sourceUrl = ref?.url || ref?.content?.url;
-                  const siteMap = ref?.snippet;
-                  
-                  console.log('Citation ref:', ref);
-                  console.log('Source URL:', sourceUrl);
-                  console.log('Site Map:', siteMap);
-
-                  return `
-                    <div class="flex items-start gap-2 text-sm">
-                      <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
-                      <div class="flex-1">
-                        ${sourceUrl ? `
+                ${citations.map((citation, index) => `
+                  <div class="flex items-start gap-2 text-sm">
+                    <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
+                    <div class="flex-1">
+                      ${citation.url ? `
+                        <div>
                           <a 
-                            href="${sourceUrl}"
+                            href="${citation.url}"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 group"
@@ -291,23 +264,18 @@ const formatMessage = (content: string | { response: string; citations?: Citatio
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
-                        ` : `
-                          <span class="text-gray-700 dark:text-gray-300">
-                            ${citation.title}
-                          </span>
-                        `}
-                        ${siteMap ? `
-                          <div class="text-gray-600 dark:text-gray-400 mt-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                            <div class="font-medium mb-1">Site Map:</div>
-                            ${siteMap.split('\n').map(line => 
-                              `<div class="ml-2">${line}</div>`
-                            ).join('')}
-                          </div>
-                        ` : ''}
-                      </div>
+                          <span class="text-gray-500 dark:text-gray-400 text-xs ml-2">${citation.url}</span>
+                        </div>
+                      ` : ''}
+                      ${citation.snippet ? `
+                        <div class="text-gray-600 dark:text-gray-400 mt-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                          <div class="font-medium mb-1">Location:</div>
+                          <div class="ml-2">${citation.snippet}</div>
+                        </div>
+                      ` : ''}
                     </div>
-                  `;
-                }).join('')}
+                  </div>
+                `).join('')}
               </div>
             </details>
           </div>
