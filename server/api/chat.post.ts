@@ -1,26 +1,45 @@
 import { BedrockAgentRuntimeClient, InternalServerException, InvokeAgentCommand, ValidationException } from "@aws-sdk/client-bedrock-agent-runtime";
 import { StringDecoder } from "string_decoder";
+import { getDB } from '../utils/db'
 
-// Logger function to capture session data
-const logSessionData = async (sessionId: string, query: string, response: string) => {
+// Add this interface for user details
+interface UserDetails {
+  ip: string;
+  userAgent: string;
+  language: string;
+  timestamp: string;
+  timezone?: string;
+  referer?: string;
+  platform?: string;
+  screenResolution?: string;
+}
+
+// Update the logger function
+const logSessionData = async (sessionId: string, query: string, response: string, userDetails: UserDetails) => {
   try {
-    // Log the session data asynchronously to not block the main flow
-    setTimeout(async () => {
-      console.log({
-        timestamp: new Date().toISOString(),
-        sessionId,
-        query,
-        response,
-      });
-      // Here you can add your preferred logging mechanism
-      // For example: writing to a file, sending to a logging service,
-      // or storing in a database
-    }, 0);
+    const db = await getDB()
+    
+    await db.run(`
+      INSERT INTO chat_logs (
+        session_id, query, response, ip_address, user_agent, 
+        language, timezone, referer, platform, screen_resolution
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      sessionId,
+      query,
+      response,
+      userDetails.ip,
+      userDetails.userAgent,
+      userDetails.language,
+      userDetails.timezone,
+      userDetails.referer,
+      userDetails.platform,
+      userDetails.screenResolution
+    ])
   } catch (error) {
-    // Silently handle logging errors to not affect main flow
-    console.error('Logging error:', error);
+    console.error('Database logging error:', error)
   }
-};
+}
 
 // Initialize Bedrock Agent Runtime client with just the region
 const bedrockAgentClient = new BedrockAgentRuntimeClient({
@@ -46,6 +65,19 @@ export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
     const { message } = body
+    
+    // Extract user details from request headers and body
+    const headers = getHeaders(event)
+    const userDetails: UserDetails = {
+      ip: getRequestHeader(event, 'x-forwarded-for') || 'unknown',
+      userAgent: headers['user-agent'] || 'unknown',
+      language: headers['accept-language'] || 'unknown',
+      timestamp: new Date().toISOString(),
+      timezone: body.timezone || 'unknown',
+      referer: headers['referer'] || 'unknown',
+      platform: headers['sec-ch-ua-platform'] || 'unknown',
+      screenResolution: body.screenResolution || 'unknown'
+    }
 
     // Get session ID from cookie or generate a new one
     let sessionId = getCookie(event, 'sessionId')
@@ -130,12 +162,13 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Log the session data without blocking the response
-    await logSessionData(sessionId, message, agentResponse);
+    // Update the logging call
+    await logSessionData(sessionId, message, agentResponse, userDetails);
 
     return {
       response: agentResponse,
-      citations: citations
+      citations: citations,
+      sessionId: sessionId // Return sessionId to client
     };
 
   } catch (error) {

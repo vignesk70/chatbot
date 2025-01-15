@@ -292,6 +292,15 @@ const formatMessage = (content: string | { response: string; citations?: Citatio
   }
 }
 
+// Add function to get screen resolution
+const getScreenResolution = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.screen.width}x${window.screen.height}`;
+  }
+  return 'unknown';
+}
+
+// Update the sendMessage function
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
 
@@ -303,7 +312,11 @@ const sendMessage = async () => {
   try {
     const response = await $fetch('/api/chat', {
       method: 'POST',
-      body: { message: userMessage }
+      body: { 
+        message: userMessage,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screenResolution: getScreenResolution()
+      }
     })
 
     messages.value.push({ 
@@ -353,29 +366,28 @@ const submitFeedback = async (messageIndex, isHelpful) => {
     const message = messages.value[messageIndex]
     const userMessage = messages.value[messageIndex - 1]
 
-    // Create updated message with feedback
-    const updatedMessage = {
-      ...message,
-      feedbackGiven: true,
-      isHelpful: isHelpful // This will be true for thumbs up, false for thumbs down
-    }
-
-    // Update the message in the array
-    messages.value[messageIndex] = updatedMessage
-
-    // Save to localStorage immediately after updating
-    localStorage.setItem('chatMessages', JSON.stringify(messages.value))
-
-    // Send feedback to server
+    // Send feedback with user details
     await $fetch('/api/feedback', {
       method: 'POST',
       body: {
         sessionId: message.sessionId,
         query: userMessage?.content || '',
-        response: message.content,
-        isHelpful: isHelpful
+        response: typeof message.content === 'string' ? message.content : message.content.response,
+        isHelpful,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screenResolution: getScreenResolution()
       }
     })
+
+    // Update message with feedback state
+    messages.value[messageIndex] = {
+      ...message,
+      feedbackGiven: true,
+      isHelpful
+    }
+
+    // Save to localStorage
+    localStorage.setItem('chatMessages', JSON.stringify(messages.value))
 
   } catch (error) {
     console.error('Error submitting feedback:', error)

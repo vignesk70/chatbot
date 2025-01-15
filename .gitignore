@@ -27,3 +27,7 @@ node_modules
 .nuxt
 .output
 .env
+
+# Database
+data/chat.db
+!data/.gitkeep
