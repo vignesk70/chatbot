@@ -47,7 +47,6 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const { message } = body
 
-   
     // Get session ID from cookie or generate a new one
     let sessionId = getCookie(event, 'sessionId')
     if (!sessionId) {
@@ -58,6 +57,7 @@ export default defineEventHandler(async (event) => {
         httpOnly: true
       })
     }
+
     // Create the command for the agent
     const command = new InvokeAgentCommand({
       agentId: process.env.BEDROCK_AGENT_ID,
@@ -87,7 +87,6 @@ export default defineEventHandler(async (event) => {
           if (chunk.chunk?.attribution?.citations) {
             for (const citation of chunk.chunk.attribution.citations) {
               if (citation.retrievedReferences && Array.isArray(citation.retrievedReferences)) {
-                // console.log('Citation:', citation.retrievedReferences.metadata)
                 const processedCitations = citation.retrievedReferences.map((ref, index) => ({
                   title: `Source ${index + 1}`,
                   url: ref.metadata?.web_source_url || null,
@@ -108,7 +107,6 @@ export default defineEventHandler(async (event) => {
           ))
         );
 
-        console.log('Final processed citations:', citations); // Debug final output
       } catch (error) {
         console.error('Error processing request:', error);
         if (error instanceof InternalServerException) {
@@ -147,4 +145,4 @@ export default defineEventHandler(async (event) => {
       message: `Error processing agent request: ${error.message}`
     })
   }
-}) 
+})
