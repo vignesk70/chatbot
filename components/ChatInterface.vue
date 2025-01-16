@@ -45,8 +45,18 @@
         }">
           <div v-html="formatMessage(message.content)"></div>
           
-          <!-- Feedback section for assistant messages -->
-          <div v-if="message.role === 'assistant'" class="feedback-section">
+          <!-- Loading indicator -->
+          <div v-if="message.isLoading" class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+            <span>We are getting your question answered</span>
+            <div class="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          
+          <!-- Feedback section -->
+          <div v-if="message.role === 'assistant' && !message.isLoading" class="feedback-section">
             <div v-if="!message.feedbackGiven" class="flex items-center justify-end gap-2 mt-2">
               <span class="text-sm text-gray-500 dark:text-gray-400">Was this helpful?</span>
               <UButton
@@ -87,6 +97,16 @@
           </div>
         </div>
       </div>
+
+      <!-- Scroll to Bottom Button -->
+      <button
+        v-show="showScrollButton"
+        @click="scrollToBottom"
+        class="fixed bottom-24 right-8 bg-blue-600 dark:bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 flex items-center gap-2"
+      >
+        <UIcon name="i-heroicons-arrow-down" class="w-5 h-5" />
+        <span class="text-sm">New Messages</span>
+      </button>
     </UCard>
     
     <div class="input-container dark:bg-gray-800 dark:border-gray-700">
@@ -111,7 +131,7 @@
         variant="solid"
         icon="i-heroicons-paper-airplane"
       >
-        {{ isLoading ? 'Sending...' : 'Send' }}
+        {{ isLoading ? 'Processing...' : 'Send' }}
       </UButton>
     </div>
   </div>
@@ -161,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
@@ -195,6 +215,7 @@ interface Message {
   sessionId?: string;
   feedbackGiven?: boolean;
   isHelpful?: boolean | null;
+  isLoading?: boolean;
 }
 
 const userInput = ref('')
@@ -202,6 +223,8 @@ const messages = ref<Message[]>([])
 const isLoading = ref(false)
 const messagesContainer = ref(null)
 const showConfirmModal = ref(false)
+const showScrollButton = ref(false)
+const isNearBottom = ref(true)
 
 // Load messages from localStorage on component mount
 onMounted(() => {
@@ -217,6 +240,11 @@ onMounted(() => {
       console.error('Error loading saved messages:', error)
       localStorage.removeItem('chatMessages')
     }
+  }
+
+  if (messagesContainer.value?.$el) {
+    messagesContainer.value.$el.addEventListener('scroll', handleScroll)
+    scrollToBottom() // Initial scroll to bottom
   }
 })
 
@@ -306,6 +334,15 @@ const sendMessage = async () => {
 
   const userMessage = userInput.value.trim()
   messages.value.push({ role: 'user', content: userMessage })
+  
+  // Add loading message with empty content
+  const loadingMessageIndex = messages.value.length
+  messages.value.push({ 
+    role: 'assistant', 
+    content: '', // Remove the loading text from here since we show it in the template
+    isLoading: true 
+  })
+  
   userInput.value = ''
   isLoading.value = true
 
@@ -319,7 +356,8 @@ const sendMessage = async () => {
       }
     })
 
-    messages.value.push({ 
+    // Replace loading message with actual response
+    messages.value[loadingMessageIndex] = { 
       role: 'assistant', 
       content: {
         response: response.response,
@@ -327,23 +365,27 @@ const sendMessage = async () => {
       },
       sessionId: response.sessionId,
       feedbackGiven: false,
-      isHelpful: null
-    })
+      isHelpful: null,
+      isLoading: false
+    }
 
     localStorage.setItem('chatMessages', JSON.stringify(messages.value))
   } catch (error) {
     console.error('Error sending message:', error)
-    messages.value.push({ 
+    // Replace loading message with error
+    messages.value[loadingMessageIndex] = { 
       role: 'system', 
       content: `Error: ${error.message || 'Unknown error occurred'}`
-    })
+    }
   } finally {
     isLoading.value = false
     nextTick(() => {
-      messagesContainer.value?.$el.scrollTo({
-        top: messagesContainer.value.$el.scrollHeight,
-        behavior: 'smooth'
-      })
+      if (messagesContainer.value?.$el) {
+        messagesContainer.value.$el.scrollTo({
+          top: messagesContainer.value.$el.scrollHeight,
+          behavior: 'smooth'
+        })
+      }
     })
   }
 }
@@ -397,6 +439,46 @@ const submitFeedback = async (messageIndex, isHelpful) => {
     })
   }
 }
+
+// Add scroll handler
+const handleScroll = () => {
+  if (!messagesContainer.value?.$el) return
+  
+  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value.$el
+  const scrollBottom = scrollHeight - scrollTop - clientHeight
+  
+  // Show button if not near bottom and there are messages
+  isNearBottom.value = scrollBottom < 100
+  showScrollButton.value = !isNearBottom.value && messages.value.length > 0
+}
+
+// Scroll to bottom function
+const scrollToBottom = () => {
+  if (!messagesContainer.value?.$el) return
+  
+  messagesContainer.value.$el.scrollTo({
+    top: messagesContainer.value.$el.scrollHeight,
+    behavior: 'smooth'
+  })
+}
+
+// Update watch for messages to handle auto-scroll
+watch(messages, () => {
+  nextTick(() => {
+    if (isNearBottom.value || messages.value[messages.value.length - 1]?.isLoading) {
+      scrollToBottom()
+    } else {
+      showScrollButton.value = true
+    }
+  })
+}, { deep: true })
+
+// Clean up scroll listener
+onUnmounted(() => {
+  if (messagesContainer.value?.$el) {
+    messagesContainer.value.$el.removeEventListener('scroll', handleScroll)
+  }
+})
 </script>
 
 <style scoped>
@@ -529,5 +611,55 @@ const submitFeedback = async (messageIndex, isHelpful) => {
 
 .feedback-section button:hover {
   transform: scale(1.1);
+}
+
+/* Add loading dots animation */
+.loading-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.loading-dots span {
+  width: 4px;
+  height: 4px;
+  background-color: currentColor;
+  border-radius: 50%;
+  animation: dots 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dots {
+  0%, 80%, 100% { 
+    transform: scale(0);
+    opacity: 0;
+  }
+  40% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Add styles for scroll button animation */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.scroll-button-enter-active,
+.scroll-button-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.scroll-button-enter-from,
+.scroll-button-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style> 
