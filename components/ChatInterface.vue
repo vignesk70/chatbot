@@ -187,22 +187,12 @@ import DOMPurify from 'dompurify'
 
 interface Citation {
   title: string;
-  snippet?: string;
-  retrievedReferences?: Array<{
-    content?: {
-      url?: string;
-      text?: string;
-      snippet?: string;
-    };
-    metadata?: {
-      web_source_url?: string;
-      web_site_map?: string;
-    };
-    location?: {
-      start?: number;
-      end?: number;
-    };
-  }>;
+  url?: string | null;
+  snippet?: string | null;
+  location?: {
+    start?: number;
+    end?: number;
+  } | null;
 }
 
 interface Message {
@@ -263,44 +253,45 @@ const formatMessage = (content: string | { response: string; citations?: Citatio
       let messageText = content.response
       const citations = content.citations || []
 
+      // Debug citations in client
+      console.log('Formatting citations:', citations)
+
       let citationsHtml = ''
-      if (citations.length > 0) {
+      if (citations && citations.length > 0) {
         citationsHtml = `
-          <div class="citations-section mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <details open class="citation-details">
+          <div class="citations-section mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <details class="citation-details">
               <summary class="flex items-center cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 <svg class="w-4 h-4 mr-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                References (${citations.length})
+                Sources (${citations.length})
               </summary>
-              <div class="pl-6 space-y-3 mt-2">
+              <div class="pl-4 space-y-3 mt-2">
                 ${citations.map((citation, index) => `
-                  <div class="flex items-start gap-2 text-sm">
-                    <span class="text-blue-600 dark:text-blue-400 font-medium min-w-[1.5rem]">[${index + 1}]</span>
-                    <div class="flex-1">
-                      ${citation.url ? `
-                        <div>
+                  <div class="citation-item">
+                    <div class="flex items-start gap-2">
+                      <span class="text-blue-600 dark:text-blue-400 font-medium">[${index + 1}]</span>
+                      <div class="flex-1">
+                        ${citation.url ? `
                           <a 
                             href="${citation.url}"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 group"
+                            class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
                           >
-                            Source
-                            <svg class="h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            ${citation.title}
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
-                          <span class="text-gray-500 dark:text-gray-400 text-xs ml-2">${citation.url}</span>
-                        </div>
-                      ` : ''}
-                      ${citation.snippet ? `
-                        <div class="text-gray-600 dark:text-gray-400 mt-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                          <div class="font-medium mb-1">Location:</div>
-                          <div class="ml-2">${citation.snippet}</div>
-                        </div>
-                      ` : ''}
+                        ` : citation.title}
+                        ${citation.snippet ? `
+                          <div class="text-gray-600 dark:text-gray-400 text-sm mt-1 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                            ${citation.snippet}
+                          </div>
+                        ` : ''}
+                      </div>
                     </div>
                   </div>
                 `).join('')}
@@ -661,5 +652,9 @@ onUnmounted(() => {
 .scroll-button-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+.citation-item {
+  @apply p-2 rounded-md bg-gray-50 dark:bg-gray-800;
 }
 </style> 

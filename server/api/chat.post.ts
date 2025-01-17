@@ -48,17 +48,12 @@ const bedrockAgentClient = new BedrockAgentRuntimeClient({
 
 interface Citation {
   title: string;
-  snippet?: string;
-  retrievedReference?: {
-    metadata?: {
-      web_source_url?: string;
-      web_site_map?: string;
-    };
-  };
+  url?: string | null;
+  snippet?: string | null;
   location?: {
     start?: number;
     end?: number;
-  };
+  } | null;
 }
 
 export default defineEventHandler(async (event) => {
@@ -114,6 +109,8 @@ export default defineEventHandler(async (event) => {
             const decodedChunk = new TextDecoder().decode(chunk.chunk.bytes);
             agentResponse += decodedChunk;
           }
+          //Debug object chunh
+          console.debug('chunk', JSON.stringify(chunk,null,2))
           
           // Handle citations from retrievedReferences
           if (chunk.chunk?.attribution?.citations) {
@@ -122,12 +119,14 @@ export default defineEventHandler(async (event) => {
                 const processedCitations = citation.retrievedReferences.map((ref, index) => ({
                   title: `Source ${index + 1}`,
                   url: ref.metadata?.web_source_url || null,
-                  snippet: ref.metadata?.web_site_map || ref.content?.snippet || null,
+                  snippet: ref.metadata?.web_site_map || ref.content?.text || null,
                   location: ref.location || null
                 }));
                 citations = citations.concat(processedCitations);
               }
             }
+            // Debug citations
+            console.log('Processed citations:', JSON.stringify(citations, null, 2));
           }
         }
 
