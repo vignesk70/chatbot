@@ -1,6 +1,16 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Chat Logs</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Chat Logs</h1>
+      <UButton
+        @click="downloadCSV"
+        color="primary"
+        variant="soft"
+        icon="i-heroicons-document-arrow-down"
+      >
+        Download CSV
+      </UButton>
+    </div>
     
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -47,10 +57,14 @@
           <thead>
             <tr>
               <th class="px-4 py-3 text-left text-sm font-semibold">Time</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Session ID</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">IP Address</th>
               <th class="px-4 py-3 text-left text-sm font-semibold">Query</th>
               <th class="px-4 py-3 text-left text-sm font-semibold">Response</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Platform</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Language</th>
               <th class="px-4 py-3 text-left text-sm font-semibold">Feedback</th>
-              <th class="px-4 py-3 text-left text-sm font-semibold">Details</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -58,8 +72,12 @@
               <td class="px-4 py-3 text-sm whitespace-nowrap">
                 {{ new Date(log.created_at).toLocaleString() }}
               </td>
+              <td class="px-4 py-3 text-sm max-w-xs truncate">{{ log.session_id }}</td>
+              <td class="px-4 py-3 text-sm">{{ log.ip_address }}</td>
               <td class="px-4 py-3 text-sm max-w-xs truncate">{{ log.query }}</td>
               <td class="px-4 py-3 text-sm max-w-xs truncate">{{ log.response }}</td>
+              <td class="px-4 py-3 text-sm">{{ log.platform }}</td>
+              <td class="px-4 py-3 text-sm">{{ log.language }}</td>
               <td class="px-4 py-3 text-sm">
                 <UBadge
                   v-if="log.is_helpful !== null"
@@ -142,10 +160,95 @@
 </template>
 
 <script setup lang="ts">
-const logs = ref([])
+import { ref, computed, watch, onMounted } from 'vue'
+
+interface ChatLog {
+  id: number
+  session_id: string
+  query: string
+  response: string
+  is_helpful: number | null
+  ip_address: string
+  user_agent: string
+  language: string
+  timezone: string
+  referer: string
+  platform: string
+  screen_resolution: string
+  created_at: string
+  updated_at: string
+}
+
+const logs = ref<ChatLog[]>([])
 const search = ref('')
-const selectedLog = ref(null)
+const selectedLog = ref<ChatLog | null>(null)
 const showModal = ref(false)
+
+// Function to convert logs to CSV
+const convertToCSV = (logs: ChatLog[]) => {
+  // Define CSV headers in same order as table
+  const headers = [
+    'ID',
+    'Time',
+    'Session ID',
+    'IP Address',
+    'Query',
+    'Response',
+    'Platform',
+    'Language',
+    'Browser (User Agent)',
+    'Screen Resolution',
+    'Timezone',
+    'Referer',
+    'Feedback',
+    'Created At',
+    'Updated At'
+  ]
+
+  // Convert logs to CSV rows in matching order
+  const rows = logs.map(log => [
+    new Date(log.created_at).toLocaleString(),
+    log.session_id,
+    log.ip_address,
+    `"${log.query.replace(/"/g, '""')}"`,
+    `"${log.response.replace(/"/g, '""')}"`,
+    log.platform,
+    `"${log.language.replace(/"/g, '""')}"`,
+    `"${log.user_agent.replace(/"/g, '""')}"`,
+    log.screen_resolution,
+    log.timezone,
+    log.referer,
+    log.is_helpful === null ? 'No Feedback' : log.is_helpful === 1 ? 'Helpful' : 'Not Helpful',
+    new Date(log.created_at).toISOString(),
+    new Date(log.updated_at).toISOString()
+  ])
+
+  // Add BOM for Excel UTF-8 compatibility
+  const BOM = '\uFEFF'
+  
+  // Combine headers and rows
+  return BOM + [headers, ...rows]
+    .map(row => row.join(','))
+    .join('\n')
+}
+
+// Function to download CSV
+const downloadCSV = () => {
+  const csv = convertToCSV(logs.value)
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `chat_logs_${timestamp}.csv`)
+  
+  document.body.appendChild(link)
+  link.click()
+  
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 // Fetch logs on mount
 onMounted(async () => {
@@ -172,7 +275,7 @@ watch(showModal, (newValue) => {
 })
 
 // Computed property for filtered logs
-const filteredLogs = computed(() => {
+const filteredLogs = computed((): ChatLog[] => {
   if (!search.value) return logs.value
   
   const searchTerm = search.value.toLowerCase()
