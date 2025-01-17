@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
             agentResponse += decodedChunk;
           }
           //Debug object chunh
-          console.debug('chunk', JSON.stringify(chunk,null,2))
+          // console.debug('chunk', JSON.stringify(chunk,null,2))
           
           // Handle citations from retrievedReferences
           if (chunk.chunk?.attribution?.citations) {
