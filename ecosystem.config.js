@@ -9,7 +9,7 @@ module.exports = {
         env: {
           AWS_REGION: "ap-northeast-1",
           BEDROCK_AGENT_ID: "19VLLTF2OD",
-          BEDROCK_AGENT_ALIAS_ID: "JZKKSBXKTJ"
+          BEDROCK_AGENT_ALIAS_ID: "GPPJURN8VN"
         }
       }
     ]
