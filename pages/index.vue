@@ -6,7 +6,7 @@
         <div class="grid md:grid-cols-2 gap-8 items-center">
           <div>
             <h2 class="text-3xl font-bold mb-4 text-blue-900 dark:text-blue-100">
-              AI Assistant for MOST Services
+              AI Assistant for MOSTI Services
             </h2>
             <p class="text-lg text-gray-700 dark:text-gray-300 mb-6">
               Get instant answers to your questions about Ministry services, grants, 
@@ -16,7 +16,7 @@
               <UButton
                 color="primary"
                 size="lg"
-                to="#chat-section"
+                @click="isChatOpen = !isChatOpen"
               >
                 Start Chat
               </UButton>
