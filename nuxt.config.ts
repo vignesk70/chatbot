@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     classSuffix: '',
     storageKey: 'nuxt-color-mode'
   },
-  ssr: true,
+
   runtimeConfig: {
     bedrockAgentId: process.env.BEDROCK_AGENT_ID,
     bedrockAgentAliasId: process.env.BEDROCK_AGENT_ALIAS_ID,
@@ -22,7 +22,6 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-12-15",
 
   nitro: {
-    preset: 'node-server',
     cors: {
       origin: process.env.CORS_ORIGINS?.split(',') || '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
