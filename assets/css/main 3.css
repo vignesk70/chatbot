@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 59 130 246;
+    --color-secondary: 107 114 128;
+  }
+}
+
+@layer components {
+  .chat-container {
+    @apply flex flex-col h-full max-w-3xl mx-auto p-5 gap-4;
+  }
+
+  .messages-container {
+    @apply flex-grow overflow-y-auto p-4;
+  }
+
+  .message {
+    @apply flex gap-3 mb-4 items-start;
+  }
+
+  .message.user {
+    @apply flex-row-reverse;
+  }
+
+  .message-content {
+    @apply max-w-[80%] p-3 rounded-lg;
+  }
+
+  .input-container {
+    @apply flex gap-3 p-4 rounded-lg bg-white dark:bg-gray-800 shadow-md;
+  }
+
+  .message-input {
+    @apply flex-grow;
+  }
+} 

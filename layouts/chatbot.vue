@@ -1,6 +1,6 @@
 <template>
     <div class="w-full">
-        <ChatInterface />
+       <slot />
     </div>
    
 </template>

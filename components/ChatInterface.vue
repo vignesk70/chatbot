@@ -110,6 +110,7 @@
     </UCard>
     
     <div class="input-container dark:bg-gray-800 dark:border-gray-700">
+      <VoiceChat />
       <UTextarea
         v-model="userInput"
         :rows="2"
