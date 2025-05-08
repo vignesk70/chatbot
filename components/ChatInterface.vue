@@ -1,6 +1,6 @@
 <template>
   <div class="chat-container">
-    <UCard class="messages-container" :ui="{ 
+    <UCard class="messages-container" :ui="{
       base: 'h-full overflow-auto',
       background: 'bg-gray-50 dark:bg-gray-900',
       divide: 'divide-gray-200 dark:divide-gray-800',
@@ -8,43 +8,26 @@
     }" ref="messagesContainer">
       <!-- Clear History Button Container -->
       <div v-if="messages.length > 0" class="clear-history-container">
-        <UButton
-          size="sm"
-          color="gray"
-          variant="soft"
-          icon="i-heroicons-trash"
-          @click="confirmClearHistory"
-          :ui="{
-            base: 'transition-colors duration-200',
-            background: 'hover:bg-red-100 dark:hover:bg-red-900',
-            color: 'text-gray-700 dark:text-gray-300'
-          }"
-        >
+        <UButton size="sm" color="gray" variant="soft" icon="i-heroicons-trash" @click="confirmClearHistory" :ui="{
+          base: 'transition-colors duration-200',
+          background: 'hover:bg-red-100 dark:hover:bg-red-900',
+          color: 'text-gray-700 dark:text-gray-300'
+        }">
           Clear History
         </UButton>
       </div>
 
       <!-- Messages -->
       <div v-for="(message, index) in messages" :key="index" class="message" :class="message.role">
-        <UAvatar
-          v-if="message.role === 'assistant'"
-          src="/bot-avatar.png"
-          alt="Bot"
-          size="sm"
-        />
-        <UAvatar
-          v-if="message.role === 'user'"
-          :src="'/user-avatar.png'"
-          alt="User"
-          size="sm"
-        />
+        <UAvatar v-if="message.role === 'assistant'" src="/bot-avatar.png" alt="Bot" size="sm" />
+        <UAvatar v-if="message.role === 'user'" :src="'/user-avatar.png'" alt="User" size="sm" />
         <div class="message-content" :class="{
           'bg-blue-50 dark:bg-blue-950': message.role === 'user',
           'bg-gray-100 dark:bg-gray-800': message.role === 'assistant',
           'bg-red-50 dark:bg-red-950': message.role === 'system'
         }">
           <div v-html="formatMessage(message.content)"></div>
-          
+
           <!-- Loading indicator -->
           <div v-if="message.isLoading" class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <span>We are getting your question answered</span>
@@ -54,33 +37,21 @@
               <span></span>
             </div>
           </div>
-          
+
           <!-- Feedback section -->
           <div v-if="message.role === 'assistant' && !message.isLoading" class="feedback-section">
             <div v-if="!message.feedbackGiven" class="flex items-center justify-end gap-2 mt-2">
               <span class="text-sm text-gray-500 dark:text-gray-400">Was this helpful?</span>
-              <UButton
-                size="xs"
-                color="gray"
-                variant="ghost"
-                :ui="{
-                  base: 'transition-colors duration-200',
-                  color: 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400'
-                }"
-                @click="submitFeedback(index, true)"
-              >
+              <UButton size="xs" color="gray" variant="ghost" :ui="{
+                base: 'transition-colors duration-200',
+                color: 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400'
+              }" @click="submitFeedback(index, true)">
                 <UIcon name="i-heroicons-hand-thumb-up" class="w-5 h-5" />
               </UButton>
-              <UButton
-                size="xs"
-                color="gray"
-                variant="ghost"
-                :ui="{
-                  base: 'transition-colors duration-200',
-                  color: 'text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400'
-                }"
-                @click="submitFeedback(index, false)"
-              >
+              <UButton size="xs" color="gray" variant="ghost" :ui="{
+                base: 'transition-colors duration-200',
+                color: 'text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400'
+              }" @click="submitFeedback(index, false)">
                 <UIcon name="i-heroicons-hand-thumb-down" class="w-5 h-5" />
               </UButton>
             </div>
@@ -88,52 +59,47 @@
               <span class="text-sm text-gray-500 dark:text-gray-400">
                 {{ message.isHelpful ? 'Marked as helpful' : 'Marked as not helpful' }}
               </span>
-              <UIcon 
-                :name="message.isHelpful ? 'i-heroicons-hand-thumb-up' : 'i-heroicons-hand-thumb-down'"
+              <UIcon :name="message.isHelpful ? 'i-heroicons-hand-thumb-up' : 'i-heroicons-hand-thumb-down'"
                 class="w-5 h-5"
-                :class="message.isHelpful ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
-              />
+                :class="message.isHelpful ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" />
             </div>
           </div>
         </div>
       </div>
 
       <!-- Scroll to Bottom Button -->
-      <button
-        v-show="showScrollButton"
-        @click="scrollToBottom"
-        class="fixed bottom-24 right-8 bg-blue-600 dark:bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 flex items-center gap-2"
-      >
+      <button v-show="showScrollButton" @click="scrollToBottom"
+        class="fixed bottom-24 right-8 bg-blue-600 dark:bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 flex items-center gap-2">
         <UIcon name="i-heroicons-arrow-down" class="w-5 h-5" />
         <span class="text-sm">New Messages</span>
       </button>
     </UCard>
+    <div class="flex flex-col p-4 gap-3 rounded-md w-full dark:bg-gray-800 dark:border-gray-700">
     
-    <div class="input-container dark:bg-gray-800 dark:border-gray-700">
-      <VoiceChat />
-      <UTextarea
-        v-model="userInput"
-        :rows="2"
-        :auto-rows="true"
-        placeholder="Type your message..."
-        :disabled="isLoading"
-        @keyup.enter.prevent="sendMessage"
-        class="message-input"
-        :ui="{
+<!-- tabs   -->
+<UTabs :items="items" >
+
+      <!-- Text Input -->
+       <template #chat>
+      <div class="flex flex-row w-full gap-3">
+        <UTextarea v-model="userInput" :rows="2" :auto-rows="true" placeholder="Type your message..."
+        :disabled="isLoading" @keyup.enter.prevent="sendMessage" class="message-input" :ui="{
           base: 'relative w-full',
           input: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-        }"
-      />
-      <UButton
-        @click="sendMessage"
-        :loading="isLoading"
-        :disabled="isLoading || !userInput.trim()"
-        color="primary"
-        variant="solid"
-        icon="i-heroicons-paper-airplane"
-      >
+        }" />
+      <UButton @click="sendMessage" :loading="isLoading" :disabled="isLoading || !userInput.trim()" color="primary"
+        variant="solid" icon="i-heroicons-paper-airplane">
         {{ isLoading ? 'Processing...' : 'Send' }}
       </UButton>
+      </div>  
+    </template>
+        <!-- Voice Chat -->
+         <template #voice>
+         <div class="flex  w-full">
+          <VoiceChat @response="handleVoiceResponse" @error="handleVoiceError" />
+         </div>
+        </template>
+         </UTabs>
     </div>
   </div>
 
@@ -159,20 +125,10 @@
 
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UButton
-            size="sm"
-            color="gray"
-            variant="soft"
-            @click="showConfirmModal = false"
-          >
+          <UButton size="sm" color="gray" variant="soft" @click="showConfirmModal = false">
             Cancel
           </UButton>
-          <UButton
-            size="sm"
-            color="red"
-            variant="solid"
-            @click="clearHistory"
-          >
+          <UButton size="sm" color="red" variant="solid" @click="clearHistory">
             Clear History
           </UButton>
         </div>
@@ -185,6 +141,7 @@
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import type { TabsItem } from '@nuxt/ui'
 
 interface Citation {
   title: string;
@@ -326,22 +283,22 @@ const sendMessage = async () => {
 
   const userMessage = userInput.value.trim()
   messages.value.push({ role: 'user', content: userMessage })
-  
+
   // Add loading message with empty content
   const loadingMessageIndex = messages.value.length
-  messages.value.push({ 
-    role: 'assistant', 
+  messages.value.push({
+    role: 'assistant',
     content: '', // Remove the loading text from here since we show it in the template
-    isLoading: true 
+    isLoading: true
   })
-  
+
   userInput.value = ''
   isLoading.value = true
 
   try {
     const response = await $fetch('/api/chat', {
       method: 'POST',
-      body: { 
+      body: {
         message: userMessage,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         screenResolution: getScreenResolution()
@@ -349,8 +306,8 @@ const sendMessage = async () => {
     })
 
     // Replace loading message with actual response
-    messages.value[loadingMessageIndex] = { 
-      role: 'assistant', 
+    messages.value[loadingMessageIndex] = {
+      role: 'assistant',
       content: {
         response: response.response,
         citations: response.citations
@@ -365,8 +322,8 @@ const sendMessage = async () => {
   } catch (error) {
     console.error('Error sending message:', error)
     // Replace loading message with error
-    messages.value[loadingMessageIndex] = { 
-      role: 'system', 
+    messages.value[loadingMessageIndex] = {
+      role: 'system',
       content: `Error: ${error.message || 'Unknown error occurred'}`
     }
   } finally {
@@ -425,8 +382,8 @@ const submitFeedback = async (messageIndex, isHelpful) => {
 
   } catch (error) {
     console.error('Error submitting feedback:', error)
-    messages.value.push({ 
-      role: 'system', 
+    messages.value.push({
+      role: 'system',
       content: 'Failed to submit feedback. Please try again.'
     })
   }
@@ -435,10 +392,10 @@ const submitFeedback = async (messageIndex, isHelpful) => {
 // Add scroll handler
 const handleScroll = () => {
   if (!messagesContainer.value?.$el) return
-  
+
   const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value.$el
   const scrollBottom = scrollHeight - scrollTop - clientHeight
-  
+
   // Show button if not near bottom and there are messages
   isNearBottom.value = scrollBottom < 100
   showScrollButton.value = !isNearBottom.value && messages.value.length > 0
@@ -447,12 +404,27 @@ const handleScroll = () => {
 // Scroll to bottom function
 const scrollToBottom = () => {
   if (!messagesContainer.value?.$el) return
-  
+
   messagesContainer.value.$el.scrollTo({
     top: messagesContainer.value.$el.scrollHeight,
     behavior: 'smooth'
   })
 }
+
+const items = [
+  {
+    label: 'Text Chat',
+    description: 'Make changes to your account here. Click save when you\'re done.',
+    icon: 'i-lucide-text',
+    slot: 'chat' as const
+  },
+  {
+    label: 'Voice Chat',
+    description: 'Change your password here. After saving, you\'ll be logged out.',
+    icon: 'i-heroicons-microphone-solid',
+    slot: 'voice' as const
+  }
+] satisfies TabsItem[]
 
 // Update watch for messages to handle auto-scroll
 watch(messages, () => {
@@ -464,13 +436,37 @@ watch(messages, () => {
     }
   })
 }, { deep: true })
-
 // Clean up scroll listener
 onUnmounted(() => {
   if (messagesContainer.value?.$el) {
     messagesContainer.value.$el.removeEventListener('scroll', handleScroll)
   }
 })
+
+// Add these functions to the script section
+const handleVoiceResponse = (response: any) => {
+  messages.value.push({
+    role: 'user',
+    content: transcript.value
+  });
+  messages.value.push(response);
+  nextTick(() => {
+    if (messagesContainer.value?.$el) {
+      messagesContainer.value.$el.scrollTo({
+        top: messagesContainer.value.$el.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  });
+};
+
+const handleVoiceError = (error: any) => {
+  messages.value.push({
+    role: 'system',
+    content: `Error: ${error.message || 'Unknown error occurred'}`
+  });
+};
+
 </script>
 
 <style scoped>
@@ -540,7 +536,7 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
-.message-content :deep(ul), 
+.message-content :deep(ul),
 .message-content :deep(ol) {
   margin: 0.5em 0;
   padding-left: 2em;
@@ -628,11 +624,15 @@ onUnmounted(() => {
 }
 
 @keyframes dots {
-  0%, 80%, 100% { 
+
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0;
   }
-  40% { 
+
+  40% {
     transform: scale(1);
     opacity: 1;
   }
@@ -640,8 +640,15 @@ onUnmounted(() => {
 
 /* Add styles for scroll button animation */
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .scroll-button-enter-active,
@@ -658,4 +665,4 @@ onUnmounted(() => {
 .citation-item {
   @apply p-2 rounded-md bg-gray-50 dark:bg-gray-800;
 }
-</style> 
+</style>
